@@ -10,6 +10,14 @@ FurniFixer is a Configurable Furniture Management Tool designed to help manage a
 - Add new furniture items with default configurations.
 - Web interface for easy access and management.
 
+## Preview
+<img src="https://i.imgur.com/91ngvuA.png">
+<img src="https://i.imgur.com/iMu5x9M.png">
+<img src="https://i.imgur.com/qxjjQkF.png">
+<img src="https://i.imgur.com/EonuwnO.png">
+<img src="https://i.imgur.com/UEn1F65.png">
+<img src="https://i.imgur.com/b0RrzPC.png">
+
 ## Prerequisites
 
 - Node.js (v21 or newer)
