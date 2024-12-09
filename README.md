@@ -48,7 +48,7 @@ To start the application:
 npm start
 ```
 
-The server will start, and you can access the application at `http://localhost:3000` in your web browser.
+The server will start, and you can access the application at `http://localhost:3123` in your web browser.
 
 ## Key Routes
 
