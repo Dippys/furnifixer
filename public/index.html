@@ -351,7 +351,7 @@
 
             const filteredItems = computed(() => {
                 return items.value.filter(item =>
-                    searchId.value ? item.id.toString() === searchId.value || item.classname === searchId.value : true
+                    searchId.value ? item.id.toString() === searchId.value || item.classname.includes(searchId.value) : true
                 );
             });
             
