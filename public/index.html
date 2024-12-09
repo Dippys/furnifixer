@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Furnidata Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-100">
+<div id="app" class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Furnidata Editor</h1>
+
+    <!-- Search and Tabs -->
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <input
+                v-model="searchId"
+                type="text"
+                placeholder="Search by ID"
+                class="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+        <div class="flex">
+            <button
+                    @click="activeTab = 'room'"
+                    :class="['px-4 py-2', activeTab === 'room' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700']"
+            >
+                Room Items
+            </button>
+            <button
+                    @click="activeTab = 'wall'"
+                    :class="['px-4 py-2', activeTab === 'wall' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700']"
+            >
+                Wall Items
+            </button>
+        </div>
+        <button
+                @click="openAddItemModal"
+                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+        >
+            Add New Item
+        </button>
+    </div>
+
+    <!-- Items Table -->
+    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+        <table class="w-full">
+            <thead>
+            <tr class="bg-gray-100 border-b">
+                <th class="px-4 py-3 text-left">ID</th>
+                <th class="px-4 py-3 text-left">Classname</th>
+                <th class="px-4 py-3 text-left">Name</th>
+                <th class="px-4 py-3 text-left">Description</th>
+                <th class="px-4 py-3 text-center">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr
+                    v-for="item in paginatedItems"
+                    :key="item.id"
+                    class="border-b hover:bg-gray-50 transition"
+            >
+                <td class="px-4 py-3">{{ item.id }}</td>
+                <td class="px-4 py-3">{{ item.classname }}</td>
+                <td class="px-4 py-3">{{ item.name }}</td>
+                <td class="px-4 py-3">{{ item.description }}</td>
+                <td class="px-4 py-3 text-center">
+                    <button
+                            @click="editItem(item)"
+                            class="text-blue-500 hover:text-blue-700 mr-2"
+                    >
+                        Edit
+                    </button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="flex justify-center mt-4 space-x-2">
+        <button
+                @click="prevPage"
+                :disabled="currentPage === 1"
+                class="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+        >
+            Previous
+        </button>
+        <span class="px-4 py-2 bg-gray-200 rounded-lg">
+                Page {{ currentPage }} of {{ totalPages }}
+            </span>
+        <button
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                class="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+        >
+            Next
+        </button>
+    </div>
+
+    <!-- Item Modal -->
+    <div
+            v-if="showModal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+        <div class="bg-white p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4 text-center">
+                {{ isEditing ? 'Edit Item' : 'Add New Item' }}
+            </h2>
+
+            <form @submit.prevent="saveItem" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- ID -->
+                    <div>
+                        <label class="block mb-2">ID</label>
+                        <input
+                                v-model="currentItem.id"
+                                type="number"
+                                required
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <!-- Classname -->
+                    <div>
+                        <label class="block mb-2">Classname</label>
+                        <input
+                                v-model="currentItem.classname"
+                                type="text"
+                                required
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <!-- Name -->
+                    <div>
+                        <label class="block mb-2">Name</label>
+                        <input
+                                v-model="currentItem.name"
+                                type="text"
+                                required
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="block mb-2">Description</label>
+                        <input
+                                v-model="currentItem.description"
+                                type="text"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block mb-2">Category</label>
+                        <input
+                                v-model="currentItem.category"
+                                type="text"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <!-- Dimensions -->
+                    <div>
+                        <label class="block mb-2">X Dimension</label>
+                        <input
+                                v-model="currentItem.xdim"
+                                type="number"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <div>
+                        <label class="block mb-2">Y Dimension</label>
+                        <input
+                                v-model="currentItem.ydim"
+                                type="number"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="flex items-center">
+                        <input
+                                v-model="currentItem.canstandon"
+                                type="checkbox"
+                                class="mr-2"
+                        >
+                        <label>Can Stand On</label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input
+                                v-model="currentItem.cansiton"
+                                type="checkbox"
+                                class="mr-2"
+                        >
+                        <label>Can Sit On</label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input
+                                v-model="currentItem.canlayon"
+                                type="checkbox"
+                                class="mr-2"
+                        >
+                        <label>Can Lay On</label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input
+                                v-model="currentItem.rare"
+                                type="checkbox"
+                                class="mr-2"
+                        >
+                        <label>Rare Item</label>
+                    </div>
+
+                    <!-- Part Colors -->
+                    <div class="col-span-2">
+                        <label class="block mb-2">Part Colors (Comma Separated)</label>
+                        <input
+                                v-model="partColorInput"
+                                type="text"
+                                placeholder="#FFFFFF, #000000"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                    </div>
+
+                    <div>
+                        <label class="block mb-2">Item Icon</label>
+                        <input
+                                type="file"
+                                ref="iconFileInput"
+                                @change="handleIconUpload"
+                                accept=".png"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                        <p v-if="uploadedIcon" class="text-green-600 text-sm mt-1">
+                            Icon: {{ uploadedIcon.name }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block mb-2">Furniture File (.nitro)</label>
+                        <input
+                                type="file"
+                                ref="furniFileInput"
+                                @change="handleFurniUpload"
+                                accept=".nitro"
+                                class="w-full px-3 py-2 border rounded-lg"
+                        >
+                        <p v-if="uploadedFurni" class="text-green-600 text-sm mt-1">
+                            Furniture: {{ uploadedFurni.name }}
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="flex justify-between mt-6">
+                    <button
+                            type="submit"
+                            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                        Save Item
+                    </button>
+                    <button
+                            type="button"
+                            @click="closeModal"
+                            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted, watch } = Vue;
+
+    createApp({
+        setup() {
+            const items = ref([]);
+            const searchId = ref('');
+            const activeTab = ref('room');
+            const currentPage = ref(1);
+            const itemsPerPage = 10;
+            const showModal = ref(false);
+            const isEditing = ref(false);
+            const partColorInput = ref('');
+            const uploadedIcon = ref(null);
+            const uploadedFurni = ref(null);
+            const iconFileInput = ref(null);
+            const furniFileInput = ref(null);
+
+            const currentItem = ref({
+                id: Date.now(),
+                classname: '',
+                name: '',
+                description: '',
+                category: '',
+                xdim: 1,
+                ydim: 1,
+                canstandon: false,
+                cansiton: false,
+                canlayon: false,
+                rare: false,
+                partcolors: { color: [] }
+            });
+
+            const handleIconUpload = (event) => {
+                const file = event.target.files[0];
+                if (file && file.name.endsWith('_icon.png')) {
+                    uploadedIcon.value = file;
+                } else {
+                    alert('Please upload a valid icon file (must end with _icon.png)');
+                    event.target.value = null;
+                    uploadedIcon.value = null;
+                }
+            };
+
+            const handleFurniUpload = (event) => {
+                const file = event.target.files[0];
+                if (file && file.name.endsWith('.nitro')) {
+                    uploadedFurni.value = file;
+                } else {
+                    alert('Please upload a valid furniture file (.nitro)');
+                    event.target.value = null;
+                    uploadedFurni.value = null;
+                }
+            };
+
+            const fetchItems = async () => {
+                try {
+                    const response = await fetch('/files?filename=FurnitureData.json');
+                    const data = await response.json();
+
+                    const roomItems = data.data.roomitemtypes?.furnitype || [];
+                    const wallItems = data.data.wallitemtypes?.furnitype || [];
+
+                    items.value = activeTab.value === 'room' ? roomItems : wallItems;
+                } catch (error) {
+                    console.error('Failed to fetch items:', error);
+                    alert('Failed to load items. Please try again.');
+                }
+            };
+
+            const filteredItems = computed(() => {
+                return items.value.filter(item =>
+                    searchId.value ? item.id.toString() === searchId.value : true
+                );
+            });
+
+            const paginatedItems = computed(() => {
+                const start = (currentPage.value - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                return filteredItems.value.slice(start, end);
+            });
+
+            const totalPages = computed(() =>
+                Math.ceil(filteredItems.value.length / itemsPerPage)
+            );
+
+            const prevPage = () => {
+                if (currentPage.value > 1) currentPage.value--;
+            };
+
+            const nextPage = () => {
+                if (currentPage.value < totalPages.value) currentPage.value++;
+            };
+
+            const openAddItemModal = () => {
+                currentItem.value = {
+                    id: Date.now(),
+                    classname: '',
+                    name: '',
+                    description: '',
+                    category: '',
+                    xdim: 1,
+                    ydim: 1,
+                    canstandon: false,
+                    cansiton: false,
+                    canlayon: false,
+                    rare: false,
+                    partcolors: { color: [] }
+                };
+                isEditing.value = false;
+                showModal.value = true;
+                partColorInput.value = '';
+            };
+
+            const editItem = (item) => {
+                currentItem.value = { ...item };
+                partColorInput.value = item.partcolors?.color?.join(', ') || '';
+                isEditing.value = true;
+                showModal.value = true;
+            };
+
+            const closeModal = () => {
+                showModal.value = false;
+            };
+
+            const saveItem = async () => {
+                // Validate classname before uploading
+                if (!currentItem.value.classname) {
+                    alert('Classname is required before uploading assets');
+                    return;
+                }
+
+                // Upload icon if present
+                if (uploadedIcon.value) {
+                    const iconFormData = new FormData();
+                    iconFormData.append('file', uploadedIcon.value);
+                    iconFormData.append('classname', currentItem.value.classname);
+
+                    try {
+                        const iconResponse = await fetch('/upload-asset', {
+                            method: 'POST',
+                            body: iconFormData
+                        });
+                        const iconResult = await iconResponse.json();
+
+                        if (!iconResponse.ok) {
+                            throw new Error(iconResult.error || 'Icon upload failed');
+                        }
+                    } catch (error) {
+                        console.error('Icon upload error:', error);
+                        alert(`Icon Upload Error: ${error.message}`);
+                        return;
+                    }
+                }
+
+                // Upload furniture file if present
+                if (uploadedFurni.value) {
+                    const furniFormData = new FormData();
+                    furniFormData.append('file', uploadedFurni.value);
+                    furniFormData.append('classname', currentItem.value.classname);
+
+                    try {
+                        const furniResponse = await fetch('/upload-asset', {
+                            method: 'POST',
+                            body: furniFormData
+                        });
+                        const furniResult = await furniResponse.json();
+
+                        if (!furniResponse.ok) {
+                            throw new Error(furniResult.error || 'Furniture file upload failed');
+                        }
+                    } catch (error) {
+                        console.error('Furniture upload error:', error);
+                        alert(`Furniture Upload Error: ${error.message}`);
+                        return;
+                    }
+                }
+
+                // Previous item saving logic remains the same
+                const payload = {
+                    filename: 'FurnitureData.json',
+                    itemData: currentItem.value
+                };
+
+                try {
+                    const url = isEditing.value ? '/update-item' : '/add-item';
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(
+                            isEditing.value
+                                ? {
+                                    filename: payload.filename,
+                                    itemId: currentItem.value.id,
+                                    updates: currentItem.value
+                                }
+                                : payload
+                        )
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Reset file inputs
+                        if (iconFileInput.value) iconFileInput.value.value = null;
+                        if (furniFileInput.value) furniFileInput.value.value = null;
+                        uploadedIcon.value = null;
+                        uploadedFurni.value = null;
+
+                        // Refresh items
+                        await fetchItems();
+                        closeModal();
+                    } else {
+                        throw new Error(result.error || 'Failed to save item');
+                    }
+                } catch (error) {
+                    console.error('Save error:', error);
+                    alert(`Error: ${error.message}`);
+                }
+            };
+
+            // Watch for tab changes and refetch
+            watch(activeTab, fetchItems);
+
+            onMounted(fetchItems);
+
+            return {
+                items,
+                searchId,
+                activeTab,
+                currentPage,
+                showModal,
+                isEditing,
+                currentItem,
+                partColorInput,
+                paginatedItems,
+                totalPages,
+                uploadedIcon,
+                uploadedFurni,
+                iconFileInput,
+                furniFileInput,
+                handleIconUpload,
+                handleFurniUpload,
+                prevPage,
+                nextPage,
+                openAddItemModal,
+                editItem,
+                closeModal,
+                saveItem,
+                fetchItems
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

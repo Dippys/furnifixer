@@ -1,0 +1,26 @@
+{
+  "storageType": "filesystem",
+  "paths": {
+    "furnitureData": {
+      "filesystem": "C:/LINODE/nitro/gamedata",
+      "r2": "hotel-storage/nitro/gamedata",
+      "s3": "hotel-storage/nitro/gamedata"
+    },
+    "icons": {
+      "filesystem": "C:/LINODE/flash/dcr/hof_furni/icons",
+      "r2": "hotel-storage/flash/dcr/hof-furni/icons",
+      "s3": "hotel-storage/flash/dcr/hof-furni/icons"
+    },
+    "furniture": {
+      "filesystem": "C:/LINODE/nitro/bundled/furniture",
+      "r2": "hotel-storage/nitro/bundled/furniture",
+      "s3": "hotel-storage/nitro/bundled/furniture"
+    }
+  },
+  "r2": {
+    "endpoint": "",
+    "accessKeyId": "",
+    "secretAccessKey": "",
+    "bucketName": "hotel"
+  }
+}
