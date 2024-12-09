@@ -351,10 +351,10 @@
 
             const filteredItems = computed(() => {
                 return items.value.filter(item =>
-                    searchId.value ? item.id.toString() === searchId.value : true
+                    searchId.value ? item.id.toString() === searchId.value || item.classname === searchId.value : true
                 );
             });
-
+            
             const paginatedItems = computed(() => {
                 const start = (currentPage.value - 1) * itemsPerPage;
                 const end = start + itemsPerPage;
